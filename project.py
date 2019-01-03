@@ -14,36 +14,27 @@ from sklearn.model_selection import train_test_split
 
 df_train = pd.read_csv('train.csv')
 
-testing_set = pd.read_csv('test.csv')
+df_test = pd.read_csv('test.csv')
 
 y_train = df_train[['PAX']]
 
-df_train , df_test ,y_train , y_test = train_test_split(df_train , y_train , test_size=0.3 , random_state=42)
+#df_train , df_test,y_train , y_test = train_test_split(df_train , y_train , test_size=0.3 , random_state=42)
 
 df_train.drop(df_train.columns[[0,1,2,3,5,6,7,11]] , axis=1 , inplace=True)
 
-df_test.drop(df_test.columns[[0,1,2,3,5,6,7,11]] , axis=1 , inplace=True)
-
-testing_set.drop(testing_set.columns[[0,1,2,3,5,6,7]], axis=1 , inplace = True)
-
-from sklearn.preprocessing import StandardScaler
-sc = StandardScaler()
+df_test.drop(df_test.columns[[0,1,2,3,5,6,7]] , axis=1 , inplace=True)
 
 from sklearn.linear_model import LogisticRegression
 
 X_train = df_train
 X_test = df_test
-
-X_train = sc.fit_transform(X_train)
-X_test = sc.fit_transform(X_test)
-
 y_train = np.ravel(y_train)
 
 clf = LogisticRegression()
 
 clf.fit(X_train , y_train)
 
-y_pred = clf.predict(testing_set)
+y_pred = clf.predict(X_test)
 
 import csv
 with open('y_pred.csv' , 'w' , newline='') as csvfile:
@@ -53,4 +44,4 @@ with open('y_pred.csv' , 'w' , newline='') as csvfile:
         writer.writerow([i,y_pred[i]])
 
 from sklearn.metrics import f1_score
-score = f1_score( y_test , y_pred , average='micro')
+print(f1_score(y_test , y_pred , average='micro'))
