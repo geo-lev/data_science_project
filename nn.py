@@ -8,19 +8,46 @@ Created on Thu Jan  3 17:23:03 2019
 
 import pandas as pd
 import numpy as np
+from datetime import datetime
+import matplotlib.pyplot as plt
 
 df_train = pd.read_csv('train.csv')
 y_train = df_train[['PAX']]
 
+month = lambda x : datetime.strptime(x , '%Y-%m-%d' ).month
+df_train['month'] = df_train['DateOfDeparture'].map(month)
+
+day = lambda x :  datetime.strptime(x , '%Y-%m-%d' ).day
+df_train['day'] = df_train['DateOfDeparture'].map(day)
+
 df_train.drop(df_train.columns[[0,1,2,3,5,6,7,11]], axis=1 , inplace = True)
 
 from sklearn.model_selection import train_test_split
-X_train , X_test , y_train , y_test = train_test_split(df_train , y_train , test_size = 0.2)
+X_train , X_test , y_train , y_test = train_test_split(df_train , y_train , test_size = 0.25)
+
+from sklearn.preprocessing import LabelEncoder
+enc = LabelEncoder()
+enc.fit(X_train['day'])
+X_train.loc[:,'day'] = enc.transform(X_train['day'])
+X_train.loc[:,'month'] = enc.transform(X_train['month'])
+X_test.loc[:,'day'] = enc.transform(X_test['day'])
+X_test.loc[:,'month'] = enc.transform(X_test['month'])
+
+#from sklearn.preprocessing import OneHotEncoder
+#enc = OneHotEncoder(categories='auto')
+#X_train = X_train.reshape(-1,1)
+#enc.fit(X_train.loc[:,'day'])
+#X_train.loc[:,'day'] = enc.transform(X_train['day'])
+#X_train.loc[:,'month'] = enc.transform(X_train['month'])
+#X_test.loc[:,'day'] = enc.transform(X_test['day'])
+#X_test.loc[:'month'] = enc.transform(X_test['month'])
+
 
 from sklearn.preprocessing import StandardScaler
 sc = StandardScaler()
 X_train = sc.fit_transform(X_train)
 X_test = sc.transform(X_test)
+y_train = np.ravel(y_train)
 
 #from keras.models import Sequential
 #from keras.layers import Dense
