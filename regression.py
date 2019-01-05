@@ -21,10 +21,19 @@ day = lambda x :  datetime.strptime(x , '%Y-%m-%d' ).day
 df_train['day'] = df_train['DateOfDeparture'].map(day)
 
 
-df_train.drop(df_train.columns[[0,1,2,3,5,6,7,11]], axis=1 , inplace = True)
+df_train.drop(df_train.columns[[0,3,4,7,8,11]], axis=1 , inplace = True)
+
+from sklearn.preprocessing import LabelEncoder
+lenc = LabelEncoder()
+lenc.fit(df_train['Departure'])
+df_train['Departure'] = lenc.transform(df_train['Departure'])
+df_train['Arrival'] = lenc.transform(df_train['Arrival'])
+lenc.fit(df_train['CityDeparture'])
+df_train['CityDeparture'] = lenc.transform(df_train['CityDeparture'])
+df_train['CityArrival'] = lenc.transform(df_train['CityArrival'])
 
 from sklearn.preprocessing import OneHotEncoder
-enc = OneHotEncoder(categorical_features = [4,5])
+enc = OneHotEncoder(categorical_features = [0,1,2,3,6,7])
 df_train= enc.fit_transform(df_train).toarray()
 
 from sklearn.preprocessing import MinMaxScaler

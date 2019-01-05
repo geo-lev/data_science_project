@@ -20,38 +20,27 @@ df_train['month'] = df_train['DateOfDeparture'].map(month)
 day = lambda x :  datetime.strptime(x , '%Y-%m-%d' ).day
 df_train['day'] = df_train['DateOfDeparture'].map(day)
 
-df_train.drop(df_train.columns[[0,1,2,3,5,6,7,11]], axis=1 , inplace = True)
+df_train.drop(df_train.columns[[0,2,3,4,6,7,8,9,11]], axis=1 , inplace = True)
+
+from sklearn.preprocessing import LabelEncoder
+lenc = LabelEncoder()
+lenc.fit(df_train['Departure'])
+df_train['Departure'] = lenc.transform(df_train['Departure'])
+df_train['Arrival'] = lenc.transform(df_train['Arrival'])
+#lenc.fit(df_train['CityDeparture'])
+#df_train['CityDeparture'] = lenc.transform(df_train['CityDeparture'])
+#df_train['CityArrival'] = lenc.transform(df_train['CityArrival'])
 
 from sklearn.preprocessing import OneHotEncoder
-enc = OneHotEncoder(categorical_features = [4,5])
+enc = OneHotEncoder(categorical_features = [0,1,3,4])
 df_train= enc.fit_transform(df_train).toarray()
 
 from sklearn.preprocessing import MinMaxScaler
 sc = MinMaxScaler()
 df_train = sc.fit_transform(df_train)
-#X_test = sc.transform(X_test)
-y_train = np.ravel(y_train)
 
 from sklearn.model_selection import train_test_split
 X_train , X_test , y_train , y_test = train_test_split(df_train , y_train , test_size = 0.25)
-
-
-#from keras.models import Sequential
-#from keras.layers import Dense
-
-#clf = Sequential()
-
-#clf.add(Dense(output_dim = 6 , init = 'uniform' , activation='linear' , input_dim = 4 ))
-
-#clf.add(Dense(output_dim = 6 , init = 'uniform' , activation = 'linear'))
-
-#clf.add(Dense(output_dim = 1 , init = 'uniform' , activation = 'linear'))
-
-#clf.compile(optimizer='adam' , loss = 'mean_absolute_error', metrics=['accuracy'])
-
-#clf.fit(X_train , y_train,batch_size=256 , nb_epoch = 50)
-
-#y_pred = clf.predict(X_test)
 
 from sklearn.neural_network import MLPClassifier
 
