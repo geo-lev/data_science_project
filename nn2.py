@@ -1,76 +1,75 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Jan  5 19:11:09 2019
-
-@author: geo-lev
-"""
-
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from imblearn.pipeline import Pipeline
 import haversine
 
-df_train = pd.read_csv('train.csv')
-y_train = df_train[['PAX']]
-
-df_train["distance"] = df_train.apply(lambda row : haversine.haversine((row["LatitudeDeparture"], row["LongitudeDeparture"]),
+def process_df(df): 
+    df["distance"] = df_train.apply(lambda row : haversine.haversine((row["LatitudeDeparture"], row["LongitudeDeparture"]),
         (row["LatitudeArrival"], row["LongitudeArrival"])), axis=1)
 
+    year = lambda x : datetime.strptime(x, '%Y-%m-%d').year
+    df['year'] = df['DateOfDeparture'].map(year)
 
-year = lambda x : datetime.strptime(x, '%Y-%m-%d').year
-df_train['year'] = df_train['DateOfDeparture'].map(year)
+    month = lambda x : datetime.strptime(x , '%Y-%m-%d' ).month
+    df['month'] = df['DateOfDeparture'].map(month)
 
-month = lambda x : datetime.strptime(x , '%Y-%m-%d' ).month
-df_train['month'] = df_train['DateOfDeparture'].map(month)
+    day = lambda x :  datetime.strptime(x , '%Y-%m-%d' ).day
+    df['day'] = df['DateOfDeparture'].map(day)
 
-day = lambda x :  datetime.strptime(x , '%Y-%m-%d' ).day
-df_train['day'] = df_train['DateOfDeparture'].map(day)
+    weekdays = lambda x : datetime.strptime(x , '%Y-%m-%d' ).isoweekday()
+    df['weekday'] = df['DateOfDeparture'].map(weekdays)
+    
+    season = {11: 'Winter', 12: 'Winter', 1: 'Winter', 2: 'Spring', 3: 'Spring', 4: 'Spring', 
+              5: 'Summer', 6: 'Summer', 7: 'Summer', 8: 'Autumn', 9: 'Autumn', 10: 'Autumn'}
 
-season = {
-    11: 'Winter',
-    12: 'Winter',
-    1: 'Winter',
-    2: 'Spring',
-    3: 'Spring',
-    4: 'Spring',
-    5: 'Summer',
-    6: 'Summer',
-    7: 'Summer',
-    8: 'Autumn',
-    9: 'Autumn',
-    10: 'Autumn'
-}
+    df['season'] = df['month'].apply(lambda x : season[x])
+    
+    return df
+    
+df_train = pd.read_csv('train.csv')
+y_label_train = df_train[['PAX']]
+df_train= process_df(df_train)
 
-df_train['season'] = df_train['month'].apply(lambda x : season[x])
+df_test = pd.read_csv('test.csv')
+df_test = process_df(df_test)
 
-df_train.drop(df_train[['DateOfDeparture','CityDeparture','CityArrival','PAX','std_wtd','LongitudeDeparture',
+
+df_train.drop(df_train[['DateOfDeparture','CityDeparture','CityArrival','PAX','LongitudeDeparture',
+                        'LatitudeDeparture','LongitudeArrival','LatitudeArrival']], axis=1 , inplace = True)
+    
+df_test.drop(df_test[['DateOfDeparture','CityDeparture','CityArrival','LongitudeDeparture',
                         'LatitudeDeparture','LongitudeArrival','LatitudeArrival']], axis=1 , inplace = True)
 
-cols_to_encode = ['Departure','Arrival','day','month','season','year']
-cols_to_scale = ['WeeksToDeparture','distance']
-
 from sklearn.preprocessing import OneHotEncoder,MinMaxScaler
+from sklearn.compose import ColumnTransformer
 
-scaler = MinMaxScaler()
-ohe = OneHotEncoder(categories='auto',sparse=False)
+coltransf = ColumnTransformer([('one_hot',OneHotEncoder(categories='auto',sparse=False) ,
+                                ['Departure','Arrival','day','month','year','weekday','season']),
+                                ('scaling', MinMaxScaler() ,['std_wtd','WeeksToDeparture','distance'] )])
 
-scaled_cols = scaler.fit_transform(df_train[cols_to_scale])
-encoded_cols = ohe.fit_transform(df_train[cols_to_encode])
+df_train = coltransf.fit_transform(df_train)
 
-processed_df = np.concatenate([scaled_cols , encoded_cols], axis =1)
+df_test = coltransf.fit_transform(df_test)
 
 from sklearn.model_selection import train_test_split
-X_train , X_test , y_train , y_test = train_test_split(processed_df , y_train , test_size = 0.25 )
+X_train , X_test , y_train , y_test = train_test_split(df_train , y_label_train , test_size = 0.25 )
 y_train = np.ravel(y_train) 
 
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import BorderlineSMOTE
 from sklearn.neural_network import MLPClassifier
+from imblearn.pipeline import Pipeline
 
-pipeline = Pipeline([('ovs',SMOTE()) , ('clf',MLPClassifier(hidden_layer_sizes=(64,32,16)))])
+pipeline = Pipeline([('ovs',BorderlineSMOTE()) , ('clf',MLPClassifier( alpha=0.55,hidden_layer_sizes=(64,32,16) ,random_state=0))])
 pipeline.fit(X_train,y_train)
 y_pred = pipeline.predict(X_test)
 
 from sklearn.metrics import f1_score
+#y_test = np.loadtxt('sample_submission.csv', delimiter="," , skiprows =1 , usecols=[1])
 score = f1_score(y_test , y_pred , average='micro')
+
+import csv 
+with open('y_pred.csv', 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile, delimiter=',')
+    writer.writerow(['Id', 'Label'])
+    for i in range(y_pred.shape[0]):
+        writer.writerow([i, y_pred[i]])
