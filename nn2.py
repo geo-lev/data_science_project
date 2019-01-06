@@ -52,23 +52,23 @@ df_train = coltransf.fit_transform(df_train)
 df_test = coltransf.fit_transform(df_test)
 
 from sklearn.model_selection import train_test_split
-X_train , X_test , y_train , y_test = train_test_split(df_train , y_label_train , test_size = 0.25 )
-y_train = np.ravel(y_train) 
+#X_train , X_test , y_train , y_test = train_test_split(df_train , y_label_train , test_size = 0.25 )
+y_label_train = np.ravel(y_label_train) 
 
 from imblearn.over_sampling import BorderlineSMOTE
 from sklearn.neural_network import MLPClassifier
 from imblearn.pipeline import Pipeline
 
 pipeline = Pipeline([('ovs',BorderlineSMOTE()) , ('clf',MLPClassifier( alpha=0.55,hidden_layer_sizes=(64,32,16) ,random_state=0))])
-pipeline.fit(X_train,y_train)
-y_pred = pipeline.predict(X_test)
+pipeline.fit(df_train,y_label_train)
+y_pred = pipeline.predict(df_test)
 
 from sklearn.metrics import f1_score
 #y_test = np.loadtxt('sample_submission.csv', delimiter="," , skiprows =1 , usecols=[1])
-score = f1_score(y_test , y_pred , average='micro')
+#score = f1_score(y_test , y_pred , average='micro')
 
 import csv 
-with open('y_pred.csv', 'w', newline='') as csvfile:
+with open('y_pred.csv', 'w', newline =' ') as csvfile:
     writer = csv.writer(csvfile, delimiter=',')
     writer.writerow(['Id', 'Label'])
     for i in range(y_pred.shape[0]):
