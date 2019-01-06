@@ -21,38 +21,35 @@ day = lambda x :  datetime.strptime(x , '%Y-%m-%d' ).day
 df_train['day'] = df_train['DateOfDeparture'].map(day)
 
 
-df_train.drop(df_train.columns[[0,2,3,4,6,7,8,9,11]], axis=1 , inplace = True)
+df_train.drop(df_train.columns[[0,2,6,11]], axis=1 , inplace = True)
 
 from sklearn.preprocessing import LabelEncoder
 lenc = LabelEncoder()
 lenc.fit(df_train['Departure'])
 df_train['Departure'] = lenc.transform(df_train['Departure'])
 df_train['Arrival'] = lenc.transform(df_train['Arrival'])
-#lenc.fit(df_train['CityDeparture'])
-#df_train['CityDeparture'] = lenc.transform(df_train['CityDeparture'])
-#df_train['CityArrival'] = lenc.transform(df_train['CityArrival'])
+
 
 from sklearn.preprocessing import OneHotEncoder
-enc = OneHotEncoder(categorical_features = [0,1,3,4])
-df_train= enc.fit_transform(df_train).toarray()
+enc = OneHotEncoder(categorical_features = [0,3,8,9] , sparse=False)
+df_train= enc.fit_transform(df_train)
 
-from sklearn.preprocessing import MinMaxScaler
-sc = MinMaxScaler()
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
 df_train = sc.fit_transform(df_train)
-#X_test = sc.transform(X_test)
-y_train = np.ravel(y_train)
 
 from sklearn.model_selection import train_test_split
 X_train , X_test , y_train , y_test = train_test_split(df_train , y_train , test_size = 0.25 )
 
+from imblearn.over_sampling import SMOTE
+ovs = SMOTE()
+X_train_res , y_train_res = ovs.fit_sample(X_train , y_train)
+
 from sklearn.ensemble import RandomForestClassifier
-clf = RandomForestClassifier(n_estimators=100)
-clf.fit(X_train,y_train)
+clf = RandomForestClassifier(n_estimators=500 , random_state = 12)
+clf.fit(X_train_res,y_train_res)
 
 y_pred = clf.predict(X_test)
-
-from sklearn.metrics import confusion_matrix
-confusion_matrix(y_test,y_pred)
 
 from sklearn.metrics import f1_score
 x = f1_score(y_test , y_pred , average='micro')
