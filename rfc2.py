@@ -27,33 +27,43 @@ def process_df(df):
     return df
     
 df_train = pd.read_csv('train.csv')
-y_train = df_train[['PAX']]
+y_label_train = df_train[['PAX']]
 df_train= process_df(df_train)
 
+df_test = pd.read_csv('test.csv')
+df_test = process_df(df_test)
 
-df_train.drop(df_train[['DateOfDeparture','CityDeparture','CityArrival','PAX','LongitudeDeparture',
+
+df_train.drop(df_train[['DateOfDeparture','CityDeparture','CityArrival','PAX','LongitudeDeparture','distance','std_wtd',
                         'LatitudeDeparture','LongitudeArrival','LatitudeArrival']], axis=1 , inplace = True)
+    
+df_test.drop(df_test[['DateOfDeparture','CityDeparture','CityArrival','LongitudeDeparture',
+                        'LatitudeDeparture','LongitudeArrival','LatitudeArrival','distance','std_wtd',]], axis=1 , inplace = True)
+
+from sklearn.model_selection import train_test_split
+X_train , X_test , y_train , y_test = train_test_split(df_train , y_label_train , test_size = 0.1 ,random_state=0)
+ 
 
 from sklearn.preprocessing import OneHotEncoder,MinMaxScaler
 from sklearn.compose import ColumnTransformer
 
 coltransf = ColumnTransformer([('one_hot',OneHotEncoder(categories='auto',sparse=False) ,
-                                ['Departure','Arrival','day','month','year','weekday']),])
-                                #('scaling', MinMaxScaler() ,['std_wtd','season','WeeksToDeparture','distance'] )])
+                                ['Departure','Arrival','day','month','year','weekday','season'])])
+#                                ('scaling', MinMaxScaler() ,['WeeksToDeparture'] )])
 
-df_train = coltransf.fit_transform(df_train)
+X_train = coltransf.fit_transform(df_train)
+X_test = coltransf.transform(X_test)
 
-from sklearn.model_selection import train_test_split
-X_train , X_test , y_train , y_test = train_test_split(df_train , y_train , test_size = 0.25 )
-y_train= np.ravel(y_train)
+
+df_test = coltransf.fit_transform(df_test)
 
 from imblearn.over_sampling import SMOTE
 from sklearn.ensemble import RandomForestClassifier
 from imblearn.pipeline import Pipeline
 
-pipeline = Pipeline([('ovs',SMOTE()) , ('clf',RandomForestClassifier(n_estimators=500))])
-pipeline.fit(X_train,y_train)
-y_pred = pipeline.predict(X_test)
+clf = RandomForestClassifier(n_estimators=512)
+clf.fit(X_train,y_label_train)
+y_pred = clf.predict(X_test)
 
 from sklearn.metrics import f1_score
 x = f1_score(y_test , y_pred , average='micro')
