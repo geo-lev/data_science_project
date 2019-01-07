@@ -27,7 +27,7 @@ def process_df(df):
     return df
     
 df_train = pd.read_csv('train.csv')
-y_label_train = df_train[['PAX']]
+y_train = df_train[['PAX']]
 df_train= process_df(df_train)
 
 df_test = pd.read_csv('test.csv')
@@ -40,9 +40,6 @@ df_train.drop(df_train[['DateOfDeparture','CityDeparture','CityArrival','PAX','L
 df_test.drop(df_test[['DateOfDeparture','CityDeparture','CityArrival','LongitudeDeparture',
                         'LatitudeDeparture','LongitudeArrival','LatitudeArrival','distance','std_wtd',]], axis=1 , inplace = True)
 
-from sklearn.model_selection import train_test_split
-X_train , X_test , y_train , y_test = train_test_split(df_train , y_label_train , test_size = 0.1 ,random_state=0)
-y_train = np.ravel(y_train) 
 
 from sklearn.preprocessing import OneHotEncoder,MinMaxScaler
 from sklearn.compose import ColumnTransformer
@@ -51,21 +48,20 @@ coltransf = ColumnTransformer([('one_hot',OneHotEncoder(categories='auto',sparse
                                 ['Departure','Arrival','day','month','year','weekday','season']),
                                 ('scaling', MinMaxScaler() ,['WeeksToDeparture'] )])
 
-X_train = coltransf.fit_transform(df_train)
-X_test = coltransf.transform(X_test)
+df_train = coltransf.fit_transform(df_train)
+df_test = coltransf.transform(df_test)
+
+from sklearn.model_selection import train_test_split
+X_train , X_test , y_train , y_test = train_test_split(df_train , y_train , test_size = 0.25 ,random_state=42)
+y_train = np.ravel(y_train)
 
 
-df_test = coltransf.fit_transform(df_test)
-
-#from sklearn.model_selection import KFold
-#kf = KFold(n_splits=10 , random_state=None , shuffle=False)
-#kf.get_n_splits
 
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import cross_val_score
 
 clf = MLPClassifier(alpha=0.55 , hidden_layer_sizes=(64,32,16),random_state=0)
-clf.fit(X_train, y_label_train)
+clf.fit(X_train, y_train)
 y_pred = clf.predict(X_test)
 
 #import csv 
